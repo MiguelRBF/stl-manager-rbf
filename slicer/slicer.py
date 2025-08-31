@@ -8,12 +8,12 @@ import numpy as np
 from numpy.typing import NDArray
 from stl import mesh
 
-from geometry.mesh.triangle import TriangleSTL
+from geometry.mesh.triangle_indexed import TriangleIndexed
+from geometry.mesh.triangle_stl import TriangleSTL
 from geometry.plane import Plane
 from geometry.segment import Segment
 from geometry.vector import Vector3D
 from slicer.segment_sliced import SegmentSliced
-from slicer.triangle_by_mesh_index import TriangleByMeshIndex
 
 PlanesList = List[Plane]
 
@@ -30,7 +30,7 @@ def vertex_in_vertex_list(vertex: Vector3D, vertex_list: List[Vector3D]):
 
 def preprocess_mesh_triangles(
     mesh_triangles: NDArray[np.float64],
-    ) -> Tuple[List[TriangleByMeshIndex], List[Vector3D]]:
+    ) -> Tuple[List[TriangleIndexed], List[Vector3D]]:
     '''Get:
     - an array composed of unique vertices
     - an array that points the vertex id that compose each triangle
@@ -39,7 +39,7 @@ def preprocess_mesh_triangles(
     mesh_vertex_list: List[Vector3D] = []
     mesh_number_of_vertices = 0
 
-    triangle_by_mesh_idx_list: List[TriangleByMeshIndex] = []
+    triangle_indexed_list: List[TriangleIndexed] = []
 
     # Iterate over all the triangles
     for triangle_idx, triangle_vertices in enumerate(mesh_triangles):
@@ -61,11 +61,11 @@ def preprocess_mesh_triangles(
             triangle_vertices_idx.append(vertex_idx)
 
         # Create triangle using vertices indices and its normal index
-        triangle = TriangleByMeshIndex(triangle_vertices_idx, triangle_idx)
+        triangle = TriangleIndexed(triangle_vertices_idx, triangle_idx)
         # Add the triangle to the list
-        triangle_by_mesh_idx_list.append(triangle)
+        triangle_indexed_list.append(triangle)
     
-    return triangle_by_mesh_idx_list, mesh_vertex_list
+    return triangle_indexed_list, mesh_vertex_list
 
 def get_slicing_planes(
     direction_vector_unitary: Vector3D, slices_number: int, min_projection: float) -> List[Plane]:
@@ -106,27 +106,27 @@ def get_segment_endpoints_slice_idx(vertex_1_mesh_index, vertex_2_mesh_index,
     return (vertex_1_slice_idx, vertex_2_slice_idx)
 
 def process_mesh_triangles(
-    triangle_by_mesh_idx_list: List[TriangleByMeshIndex],
+    triangle_indexed_list: List[TriangleIndexed],
     mesh_vertex_np: NDArray, mesh_normals_np: NDArray[np.float64],
     mesh_vertex_projections_np: NDArray[np.float64], 
     min_projection: float, max_projection: float, slices_number: int,
     slices_plane_list: List[Plane]):
     '''Get new triangles mesh with triangles that belongs to only one layer'''
     # Iterate over all the triangles
-    for triangle_idx, triangle_by_mesh_idx in enumerate(triangle_by_mesh_idx_list):
+    for triangle_idx, triangle_indexed in enumerate(triangle_indexed_list):
         # List of tuples (vertex_idx-slice_idx)
         triangle_vertex_slices = []
         # List of slices for 3 vertex
         vertex_slices = []
         
-        # Create a list to store all the points of the edges and its intersections (sorted)
+        # Create a list to store the edges and its intersections (sorted)
         segment_sliced_list: List[SegmentSliced] = []
         # Iterate over all triangle edges
         edges_vertices = [ (0, 1), (1, 2), (2, 0) ]
-        for endpoint_1, endpoint_2 in edges_vertices:
+        for endpoint_1_idx, endpoint_2_idx in edges_vertices:
             # Get the vertices mesh index
-            vertex_1_mesh_index = triangle_by_mesh_idx.vertices_index[endpoint_1]
-            vertex_2_mesh_index = triangle_by_mesh_idx.vertices_index[endpoint_2]
+            vertex_1_mesh_index = triangle_indexed.vertices_index[endpoint_1_idx]
+            vertex_2_mesh_index = triangle_indexed.vertices_index[endpoint_2_idx]
 
             # Get the coordinates of both vertices
             vertex_1: Vector3D = mesh_vertex_np[vertex_1_mesh_index]
@@ -141,28 +141,26 @@ def process_mesh_triangles(
                 min_projection, max_projection, slices_number)
 
             # Create list to store all the intersections of the edge with slicing planes
-            edge_slices_intersections: List[Vector3D] = []
+            edge_intersection_list: List[Vector3D] = []
             # Iterate over all slices
             for slice_plane in slices_plane_list:
-                intersection_point = slice_plane.intersect_with_segment(edge_segment)
+                intersection = slice_plane.intersect_with_segment(edge_segment)
                 # Check for intersection
-                if intersection_point is None:
+                if intersection is None:
                     continue
                 # Add the intersection to the list
-                edge_slices_intersections.append(intersection_point)
+                edge_intersection_list.append(intersection)
 
             # Create a segment with intersections
             edge_segment_with_intersections = SegmentSliced(
-                edge_segment, segment_endpoints_slice_idx, edge_slices_intersections)
+                edge_segment, segment_endpoints_slice_idx, edge_intersection_list)
             print(edge_segment_with_intersections)
-            # # Sort the points by the segment direction...
-            # edge_segment_with_intersections.sort_points_along_segment()
-            
+
             # Append the edge with intersections to list
             segment_sliced_list.append(edge_segment_with_intersections)
         
         TriangleSTL.create_triangle_inner_mesh(
-            triangle_by_mesh_idx, mesh_normals_np[triangle_idx], segment_sliced_list)
+            triangle_indexed, mesh_normals_np[triangle_idx], segment_sliced_list)
 
 def slice_stl(file_path: str, output_dir: str, direction_vector: Vector3D, slice_thickness: float):
     ''''''
@@ -176,13 +174,13 @@ def slice_stl(file_path: str, output_dir: str, direction_vector: Vector3D, slice
     triangle_id_np = np.arange(stl_model.vectors.shape[0])
 
     # Preprocess mesh triangles
-    triangle_by_mesh_idx_list, mesh_vertex_list = preprocess_mesh_triangles(stl_model.vectors)
-    print(f"mesh number of triangles: {len(triangle_by_mesh_idx_list)}")
+    triangle_indexed_list, mesh_vertex_list = preprocess_mesh_triangles(stl_model.vectors)
+    print(f"mesh number of triangles: {len(triangle_indexed_list)}")
     print(f"mesh number of unique vertices: {len(mesh_vertex_list)}")
     
     # Convert to numpy array the vertex list to use numpy methods on it
     mesh_vertex_np = np.array(mesh_vertex_list)
-    print(f"mesh_triangle_vertices_idx_list: {triangle_by_mesh_idx_list}")
+    print(f"mesh_triangle_vertices_idx_list: {triangle_indexed_list}")
     print(f"mesh_vertex_np: {mesh_vertex_np}")
     
     # get the projection of all the vertices into slicing direction
@@ -198,16 +196,16 @@ def slice_stl(file_path: str, output_dir: str, direction_vector: Vector3D, slice
     print(f"Number of slices: {slices_number}")
     
     # Get slices minimum and maximum projected value
-    slices_plane_np = get_slicing_planes(direction_vector_unitary, slices_number, min_projection)
+    slices_plane_list = get_slicing_planes(direction_vector_unitary, slices_number, min_projection)
     # print(slices_ranges_np)
     
     # 
     process_mesh_triangles(
-        triangle_by_mesh_idx_list,
+        triangle_indexed_list,
         mesh_vertex_np, stl_model.normals,
         mesh_vertex_projections_np,
         min_projection, max_projection, slices_number,
-        slices_plane_np)
+        slices_plane_list)
     
 if __name__ == "__main__":
     direction_vector = Vector3D([1, 0, 0])

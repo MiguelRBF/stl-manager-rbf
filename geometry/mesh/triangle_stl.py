@@ -3,9 +3,9 @@ from typing import List
 import numpy as np
 from numpy.typing import NDArray
 
+from geometry.mesh.triangle_indexed import TriangleIndexed
 from geometry.vector import Vector3D
 from slicer.segment_sliced import SegmentSliced
-from slicer.triangle_by_mesh_index import TriangleByMeshIndex
 
 class TriangleSTL:
     def __init__(self, vertex_list: List[Vector3D], normal: Vector3D):
@@ -18,8 +18,8 @@ class TriangleSTL:
         # get the 
         
     def create_triangle_inner_mesh(
-        triangle_by_mesh_idx: TriangleByMeshIndex, triangle_normal: Vector3D,
-        segment_sliced_list: List[SegmentSliced]):
+        triangle_indexed: TriangleIndexed, triangle_normal: Vector3D,
+        segment_sliced_list: List[SegmentSliced]) -> List[TriangleIndexed]:
         ''''''
         triangle_has_intersections = False
         # Check if segments has no intersection

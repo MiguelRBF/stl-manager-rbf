@@ -1,7 +1,6 @@
-
 from typing import List
 
-class TriangleByMeshIndex:
+class TriangleIndexed:
     def __init__(self, vertices_index: List[int], normal_index: int):
         self.vertices_index: List[int] = vertices_index
         self.normal_index: int = normal_index
