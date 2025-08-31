@@ -4,6 +4,7 @@ from typing import Dict, List
 from geometry.mesh.mesh_indexed import MeshIndexed
 from geometry.mesh.mesh_projections import MeshProjections
 from geometry.plane import Plane
+from geometry.triangle_sliced import TriangleSliced
 from geometry.vector import Vector3D
 from geometry.segment_sliced import SegmentSliced
 
@@ -15,6 +16,7 @@ class MeshSlices:
     Attributes:
         slice_thickness (float): the thickness of each slice [mm]
         slices_number (int): Number of slices
+        direction_unitary (Vector3D): unitary direction into which the slicing is executed
         slicer_plane_list (List[Plane]): List of slicer planes
         slices_mesh_dict (Dict[int, MeshIndexed]): Dictionary to store an indexed mesh for each slice
     """
@@ -27,17 +29,19 @@ class MeshSlices:
         # Compute the number of slices
         self.slices_number: int = math.ceil(mesh_projections.range_projection / slice_thickness)
         print(f"Number of slices: {self.slices_number}")
-    
-        # Get slices minimum and maximum projected value
-        self.get_slicing_planes(
-            mesh_projections.slicing_direction_unitary,
-            mesh_projections.min_projection)
         
-        # Init
-        self.init_slices_mesh_dict()
+        # Store unitary vector direction for slicing
+        self.slicing_direction_unitary = mesh_projections.slicing_direction_unitary
+        # Store the minimum projection
+        self.min_projection = mesh_projections.min_projection
+    
+        # Get slicing planes planes
+        self.__get_slicing_planes()
+        
+        # Init a dict to store each slice mesh
+        self.__init_slices_mesh_dict()
 
-    def get_slicing_planes(self, direction_vector_unitary: Vector3D,
-                           min_projection: float) -> None:
+    def __get_slicing_planes(self) -> None:
         """
         Create a list of planes that are going to be used to slice a mesh
         """
@@ -47,17 +51,17 @@ class MeshSlices:
         # Iterate over all the slices to be executed
         for slice_idx in range(self.slices_number):
             # get slicing plane reference point projection
-            slice_reference_point_projection = min_projection + (slice_idx * self.slice_thickness)
+            slice_reference_point_projection = self.min_projection + (slice_idx * self.slice_thickness)
             
             # Gets it coordinates
-            slice_reference_point = direction_vector_unitary * slice_reference_point_projection
+            slice_reference_point = self.slicing_direction_unitary * slice_reference_point_projection
             
             # Create slice plane
-            slice_plane = Plane(slice_reference_point, direction_vector_unitary)
+            slice_plane = Plane(slice_reference_point, self.slicing_direction_unitary)
             # Add to the list of slicing planes
             self.slicer_plane_list.append(slice_plane)
 
-    def init_slices_mesh_dict(self) -> None:
+    def __init_slices_mesh_dict(self) -> None:
         """
         Initialize an empty indexed mesh for each slice
         """
@@ -87,19 +91,43 @@ class MeshSlices:
                 triangle_has_intersections = True
                 break
         
+        # Fill the mesh depending if triangle has intersections or not
         if (triangle_has_intersections):
-            ''''''
-            print("NOT IMPLEMENTED YET!")
+            self.__fill_mesh_slices_from_triangle_with_intersections(
+                triangle_normal, segment_sliced_list)
         else:
-            # Get the slice to which the triangle belongs
-            slice_index = segment_sliced.endpoints_slices_idx[0]
+            self.__fill_mesh_slices_from_triangle_without_intersections(
+                triangle_normal, segment_sliced_list)
 
-            # Get the list of vertex using the first point of the segments
-            triangle_vertex_list = [
-                segment_sliced_list[0].p1,
-                segment_sliced_list[1].p1,
-                segment_sliced_list[2].p1
-            ]
+    def __fill_mesh_slices_from_triangle_without_intersections(self, 
+        triangle_normal: Vector3D,
+        segment_sliced_list: List[SegmentSliced]) -> None:
+        """"""
+        # Get the slice to which the triangle belongs. Use first sliced segment
+        slice_index = segment_sliced_list[0].endpoints_slice_idx[0]
 
-            # Fill the slice mesh
-            self.slices_mesh_dict[slice_index].add_triangle_to_mesh(triangle_normal, triangle_vertex_list)
+        # Get the list of vertex using the first point of the segments
+        triangle_vertex_list = [
+            segment_sliced_list[0].p1,
+            segment_sliced_list[1].p1,
+            segment_sliced_list[2].p1
+        ]
+
+        # Fill the slice mesh
+        self.slices_mesh_dict[slice_index].add_triangle_to_mesh(triangle_normal, triangle_vertex_list)
+
+    def __fill_mesh_slices_from_triangle_with_intersections(self, 
+        triangle_normal: Vector3D,
+        segment_sliced_list: List[SegmentSliced]) -> None:
+        """"""
+        # Create sliced triangle
+        triangle_sliced = TriangleSliced(
+            triangle_normal, segment_sliced_list, self.slicing_direction_unitary)
+        # Preprocess it
+        triangle_sliced.preprocess()
+        # Get the the slices mesh dict for the triangle
+        triangle_sliced.get_slices_mesh_dict()
+        
+        # Fill the slices mesh dictionary using the data computed for the triangle ...
+        # TODO
+        # self.slices_mesh_dict

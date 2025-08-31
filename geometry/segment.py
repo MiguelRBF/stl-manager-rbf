@@ -19,17 +19,21 @@ class Segment:
         ab = self.p2 - self.p1
         return ab / np.linalg.norm(ab)
     
-    def sort_points_along_direction(self, direction: Vector3D) -> None:
+    def sort_points_along_direction(self, direction: Vector3D) -> bool:
         """
         Sorts the segment's points so that p1 is the point with smaller
-        projection onto 'direction' vector (assumed to be unitary).
+        projection onto 'direction' vector.
+        Args:
+            direction (Vector3D): sorting direction
+        Returns:
+            bool: true if the points order is change. False if order is not changed
         """
         # Compute projections
         proj_p1 = np.dot(self.p1, direction)
         proj_p2 = np.dot(self.p2, direction)
 
         # Swap points if p2 is smaller along direction
-        if proj_p2 < proj_p1:
+        if proj_p1 > proj_p2:
             self.p1, self.p2 = self.p2, self.p1
 
     def __repr__(self) -> str:

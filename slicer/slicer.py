@@ -92,18 +92,22 @@ def process_mesh_triangles(
 
             # Create list to store all the intersections of the edge with slicing planes
             edge_intersection_list: List[Vector3D] = []
+            edge_intersection_idx_list: List[int] = []
             # Iterate over all slices
-            for slice_plane in mesh_slices.slicer_plane_list:
+            for slice_idx, slice_plane in enumerate(mesh_slices.slicer_plane_list):
                 intersection = slice_plane.intersect_with_segment(edge_segment)
                 # Check for intersection
                 if intersection is None:
                     continue
                 # Add the intersection to the list
                 edge_intersection_list.append(intersection)
+                # Add the index to the list of intersection index
+                edge_intersection_idx_list.append(slice_idx)
 
             # Create a segment with intersections
             edge_segment_sliced = SegmentSliced(
-                edge_segment, segment_endpoints_slice_idx, edge_intersection_list)
+                edge_segment, segment_endpoints_slice_idx,
+                edge_intersection_list, edge_intersection_idx_list)
             print(edge_segment_sliced)
 
             # Append the edge with intersections to list

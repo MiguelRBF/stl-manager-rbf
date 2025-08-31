@@ -10,11 +10,13 @@ from geometry.vector import Vector3D
 class SegmentSliced(Segment):
     def __init__(self,
                  segment: Segment, endpoints_slices_idx: Tuple[int],
-                 points: List[Vector3D] = None, tol: float = 1e-8):
+                 points: List[Vector3D] = None,
+                 points_slice_idx: List[int] = None, tol: float = 1e-8):
         # Init father class attributes
         super().__init__(segment.p1, segment.p2)
-        self.endpoints_slices_idx: Tuple[int] = endpoints_slices_idx
+        self.endpoints_slice_idx: Tuple[int, int] = endpoints_slices_idx
         self.points: List[Vector3D] = []
+        self.points_slice_idx = points_slice_idx
         self.tol = tol
 
         if points is not None:
@@ -66,14 +68,31 @@ class SegmentSliced(Segment):
 
         self.points.append(point)
 
-    def sort_points_along_segment(self) -> None:
+    def sort_all_points_along_slicing_direction(self, slicing_direction: Vector3D) -> None:
+        """
+        Sorts all the points of the segment (and its slices indices) along the provided slicing direction
+        """
+        # Sort end points
+        endpoints_sorted = self.sort_points_along_direction()
+        # If endpoints had been sorted, update endpoints slice index
+        if(endpoints_sorted):
+            self.endpoints_slice_idx = (self.endpoints_slice_idx[1], self.endpoints_slice_idx[0])
+        
+        # Sort intermediate points along the given direction
+        self.points.sort(key=lambda pt: np.dot(pt, slicing_direction))
+        # Sort its indices
+        self.points_slice_idx.sort()
+
+    def sort_intermediate_points_along_segment(self) -> None:
         """
         Sorts the internal points in-place along the segment direction.
         """
         # get segment unitary direction (vector)
         segment_direction_unitary = self.direction_vector_unitary()
-        # Sort the points along the segment direction
+        # Sort intermediate points along the segment direction
         self.points.sort(key=lambda pt: np.dot(pt, segment_direction_unitary))
+        # Sort its indices
+        self.points_slice_idx.sort(key=lambda pt: np.dot(pt, segment_direction_unitary))
 
     def get_all_points(self) -> List[Vector3D]:
         """
@@ -92,4 +111,4 @@ class SegmentSliced(Segment):
     def __repr__(self) -> str:
         pts = self.get_all_points()
         pts_str = ', '.join([str(p.tolist()) for p in pts])
-        return f"SegmentSliced(segment_end_points=({self.p1, self.p2}), endpoints_slice_idx={self.endpoints_slices_idx} all_points=[{pts_str}])"
+        return f"SegmentSliced(segment_end_points=({self.p1, self.p2}), endpoints_slice_idx={self.endpoints_slice_idx} all_points=[{pts_str}])"
