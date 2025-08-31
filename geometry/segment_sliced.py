@@ -3,7 +3,6 @@
 from typing import List, Tuple
 
 import numpy as np
-from numpy.typing import NDArray
 
 from geometry.segment import Segment
 from geometry.vector import Vector3D
