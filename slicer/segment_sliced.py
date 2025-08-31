@@ -8,11 +8,12 @@ from numpy.typing import NDArray
 from geometry.segment import Segment
 from geometry.vector import Vector3D
 
-class SegmentSliced:
+class SegmentSliced(Segment):
     def __init__(self,
                  segment: Segment, endpoints_slices_idx: Tuple[int],
                  points: List[Vector3D] = None, tol: float = 1e-8):
-        self.segment = segment
+        # Init father class attributes
+        super().__init__(segment.p1, segment.p2)
         self.endpoints_slices_idx: Tuple[int] = endpoints_slices_idx
         self.points: List[Vector3D] = []
         self.tol = tol
@@ -28,8 +29,8 @@ class SegmentSliced:
             - The projection parameter t ∈ [0,1]
             - The perpendicular distance is small (close to 0)
         """
-        a = self.segment.p1
-        b = self.segment.p2
+        a = self.p1
+        b = self.p2
         ab = b - a
         ap = point - a
         ab_norm_sq = np.dot(ab, ab)
@@ -71,7 +72,7 @@ class SegmentSliced:
         Sorts the internal points in-place along the segment direction.
         """
         # get segment unitary direction (vector)
-        segment_direction_unitary = self.segment.direction_vector_unitary()
+        segment_direction_unitary = self.direction_vector_unitary()
         # Sort the points along the segment direction
         self.points.sort(key=lambda pt: np.dot(pt, segment_direction_unitary))
 
@@ -80,10 +81,10 @@ class SegmentSliced:
         Returns all points: segment endpoints + interior points,
         sorted along the segment direction.
         """
-        all_points = [self.segment.p1] + self.points + [self.segment.p2]
+        all_points = [self.p1] + self.points + [self.p2]
 
         # Sort points by projection on segment direction
-        ab = self.segment.p2 - self.segment.p1
+        ab = self.p2 - self.p1
         ab_unit = ab / np.linalg.norm(ab)
 
         all_points.sort(key=lambda pt: np.dot(pt, ab_unit))
@@ -92,4 +93,4 @@ class SegmentSliced:
     def __repr__(self) -> str:
         pts = self.get_all_points()
         pts_str = ', '.join([str(p.tolist()) for p in pts])
-        return f"SegmentSliced(segment={self.segment}, endpoints_slice_idx={self.endpoints_slices_idx} points=[{pts_str}])"
+        return f"SegmentSliced(segment_end_points=({self.p1, self.p2}), endpoints_slice_idx={self.endpoints_slices_idx} all_points=[{pts_str}])"

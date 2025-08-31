@@ -29,9 +29,9 @@ class TriangleSTL:
         else:
             # get the list of vertex using the first point of the segments
             vertex_list = [
-                segment_sliced_list[0].segment.p1,
-                segment_sliced_list[1].segment.p1,
-                segment_sliced_list[2].segment.p1
+                segment_sliced_list[0].p1,
+                segment_sliced_list[1].p1,
+                segment_sliced_list[2].p1
             ]
             # return TriangleSTL(vertex_list, triangle_indexed.normal_index)
     
