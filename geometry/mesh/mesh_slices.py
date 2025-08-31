@@ -43,9 +43,7 @@ class MeshSlices:
         """
         # List to store the plane for each slice
         self.slicer_plane_list: List[Plane] = []
-        
-        # List of planes for used for slicing
-        slices_plane_list: List[Plane] = []
+
         # Iterate over all the slices to be executed
         for slice_idx in range(self.slices_number):
             # get slicing plane reference point projection
@@ -57,9 +55,7 @@ class MeshSlices:
             # Create slice plane
             slice_plane = Plane(slice_reference_point, direction_vector_unitary)
             # Add to the list of slicing planes
-            slices_plane_list.append(slice_plane)
-            
-        return slices_plane_list
+            self.slicer_plane_list.append(slice_plane)
 
     def init_slices_mesh_dict(self) -> None:
         """
