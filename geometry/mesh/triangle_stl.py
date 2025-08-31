@@ -11,16 +11,11 @@ class TriangleSTL:
     def __init__(self, vertex_list: List[Vector3D], normal: Vector3D):
         self.vertex_list: List[Vector3D] = vertex_list
         self.normal: Vector3D = normal
-    
-    def compute_triangle_inner_mesh(
-        triangle_normal: Vector3D, segment_sliced_list: List[SegmentSliced]):
-        ''''''
-        # get the 
-        
+
     def create_triangle_inner_mesh(
-        triangle_indexed: TriangleIndexed, triangle_normal: Vector3D,
+        triangle_indexed: TriangleIndexed,
         segment_sliced_list: List[SegmentSliced]) -> List[TriangleIndexed]:
-        ''''''
+        """"""
         triangle_has_intersections = False
         # Check if segments has no intersection
         for segment_sliced in segment_sliced_list:
@@ -38,5 +33,5 @@ class TriangleSTL:
                 segment_sliced_list[1].segment.p1,
                 segment_sliced_list[2].segment.p1
             ]
-            return TriangleSTL(vertex_list, triangle_normal)
+            # return TriangleSTL(vertex_list, triangle_indexed.normal_index)
     
